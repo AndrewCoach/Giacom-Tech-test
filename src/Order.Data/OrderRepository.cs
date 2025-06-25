@@ -171,26 +171,43 @@ namespace Order.Data
 
         public async Task<IEnumerable<MonthlyProfit>> GetMonthlyProfitReportAsync()
         {
-            var profitReport = await _orderContext.Order
-                // 1. Only include orders with the status 'Completed'.
-                .Where(o => o.Status.Name == "Completed")
-                // 2. Group the orders by the Year and Month of their CreatedDate.
-                .GroupBy(o => new { o.CreatedDate.Year, o.CreatedDate.Month })
-                // 3. For each group, create a MonthlyProfit object.
+            // The MySQL EF Core provider is unable to translate the GroupBy and Sum
+            // operations on navigation properties in a single query.
+            // Solving this with two-step materialize and process approach.
+
+            // STEP 1: Fetch the raw, un-calculated data from the database.
+            var completedItemsData = await _orderContext.OrderItem
+                .Where(i => i.Order.Status.Name == "Completed")
+                .Select(i => new
+                {
+                    // We only select the columns we absolutely need for the calculation.
+                    i.Order.CreatedDate,
+                    i.Product.UnitPrice,
+                    i.Product.UnitCost,
+                    i.Quantity
+                })
+                .ToListAsync();
+
+            // STEP 2: Now that the data is in memory, use standard C# LINQ to perform
+            // the complex grouping and aggregation. This is no longer translated to SQL.
+            var profitReport = completedItemsData
+                // 1. Group the in-memory data by the Year and Month of the CreatedDate.
+                .GroupBy(d => new { d.CreatedDate.Year, d.CreatedDate.Month })
+                // 2. For each group, create a MonthlyProfit object.
                 .Select(g => new MonthlyProfit
                 {
                     Year = g.Key.Year,
                     Month = g.Key.Month,
-                    // Calculate the total profit for all orders within the group.
-                    // Profit for an order = Sum of (Item Price - Item Cost).
-                    // Sum this profit across all orders in the group.
-                    TotalProfit = g.Sum(o => o.Items.Sum(i => (i.Product.UnitPrice - i.Product.UnitCost) * i.Quantity.Value))
+                    // 3. Calculate the total profit for all items within the monthly group.
+                    TotalProfit = g.Sum(d => (d.UnitPrice - d.UnitCost) * (d.Quantity ?? 0))
                 })
+                // 4. Order the final results.
                 .OrderBy(p => p.Year)
                 .ThenBy(p => p.Month)
-                .ToListAsync();
+                .ToList();
 
             return profitReport;
+            // TODO: For the future it would be better to devise a more efficient approach that works, for now just loading all data to memory.
         }
     }
 }
