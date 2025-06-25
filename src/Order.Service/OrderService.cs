@@ -46,5 +46,10 @@ namespace Order.Service
         {
             return await _orderRepository.UpdateOrderStatusAsync(orderId, newStatusName);
         }
+
+        public async Task<IEnumerable<MonthlyProfit>> GetMonthlyProfitReportAsync()
+        {
+            return await _orderRepository.GetMonthlyProfitReportAsync();
+        }
     }
 }

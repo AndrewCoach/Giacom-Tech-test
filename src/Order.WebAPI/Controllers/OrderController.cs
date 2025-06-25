@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Order.Model;
 using Order.Service;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace OrderService.WebAPI.Controllers
@@ -83,6 +84,14 @@ namespace OrderService.WebAPI.Controllers
             {
                 return NotFound($"Order with ID '{orderId}' or status '{request.StatusName}' not found.");
             }
+        }
+
+        [HttpGet("profit/monthly")]
+        [ProducesResponseType(typeof(IEnumerable<MonthlyProfit>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetMonthlyProfit()
+        {
+            var profitReport = await _orderService.GetMonthlyProfitReportAsync();
+            return Ok(profitReport);
         }
     }
 }

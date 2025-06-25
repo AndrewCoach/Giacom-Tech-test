@@ -168,5 +168,29 @@ namespace Order.Data
 
             return true;
         }
+
+        public async Task<IEnumerable<MonthlyProfit>> GetMonthlyProfitReportAsync()
+        {
+            var profitReport = await _orderContext.Order
+                // 1. Only include orders with the status 'Completed'.
+                .Where(o => o.Status.Name == "Completed")
+                // 2. Group the orders by the Year and Month of their CreatedDate.
+                .GroupBy(o => new { o.CreatedDate.Year, o.CreatedDate.Month })
+                // 3. For each group, create a MonthlyProfit object.
+                .Select(g => new MonthlyProfit
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    // Calculate the total profit for all orders within the group.
+                    // Profit for an order = Sum of (Item Price - Item Cost).
+                    // Sum this profit across all orders in the group.
+                    TotalProfit = g.Sum(o => o.Items.Sum(i => (i.Product.UnitPrice - i.Product.UnitCost) * i.Quantity.Value))
+                })
+                .OrderBy(p => p.Year)
+                .ThenBy(p => p.Month)
+                .ToListAsync();
+
+            return profitReport;
+        }
     }
 }

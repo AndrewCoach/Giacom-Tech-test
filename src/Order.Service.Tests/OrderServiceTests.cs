@@ -178,20 +178,23 @@ namespace Order.Service.Tests
             Assert.IsTrue(completedOrders.All(o => o.StatusName == "Completed"), "All returned orders should have the status 'Completed'.");
         }
 
-        private async Task AddOrder(Guid orderId, int quantity, string statusName = "Created")
+        private async Task AddOrder(Guid orderId, int quantity, string statusName = "Created", DateTime? createdDate = null)
         {
             var orderIdBytes = orderId.ToByteArray();
 
-            // Determine which status ID to use based on the name
-            var statusId = statusName == "Completed" ? _orderStatusCompletedId : _orderStatusCreatedId;
+            var statusId = statusName switch
+            {
+                "Completed" => _orderStatusCompletedId,
+                _ => _orderStatusCreatedId,
+            };
 
             _orderContext.Order.Add(new Data.Entities.Order
             {
                 Id = orderIdBytes,
                 ResellerId = Guid.NewGuid().ToByteArray(),
                 CustomerId = Guid.NewGuid().ToByteArray(),
-                CreatedDate = DateTime.Now,
-                StatusId = statusId, // Use the determind status ID
+                CreatedDate = createdDate ?? DateTime.UtcNow,
+                StatusId = statusId,
             });
 
             _orderContext.OrderItem.Add(new OrderItem
