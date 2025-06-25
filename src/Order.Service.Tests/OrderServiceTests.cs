@@ -21,6 +21,7 @@ namespace Order.Service.Tests
         private readonly byte[] _orderStatusCreatedId = Guid.NewGuid().ToByteArray();
         private readonly byte[] _orderServiceEmailId = Guid.NewGuid().ToByteArray();
         private readonly byte[] _orderProductEmailId = Guid.NewGuid().ToByteArray();
+        private readonly byte[] _orderStatusCompletedId = Guid.NewGuid().ToByteArray();
 
 
         [SetUp]
@@ -154,16 +155,43 @@ namespace Order.Service.Tests
             Assert.AreEqual(1.8m, order.TotalPrice);
         }
 
-        private async Task AddOrder(Guid orderId, int quantity)
+        [Test]
+        public async Task GetOrdersAsync_WithStatusFilter_ReturnsOnlyMatchingOrders()
+        {
+            // Arrange
+            // Create one order with 'Created' status
+            await AddOrder(Guid.NewGuid(), 1, "Created");
+
+            // Create two orders with 'Completed' status
+            await AddOrder(Guid.NewGuid(), 2, "Completed");
+            await AddOrder(Guid.NewGuid(), 3, "Completed");
+
+            // Act
+            var completedOrders = await _orderService.GetOrdersAsync("Completed");
+            var createdOrders = await _orderService.GetOrdersAsync("Created");
+            var allOrders = await _orderService.GetOrdersAsync();
+
+            // Assert
+            Assert.AreEqual(2, completedOrders.Count(), "Should return only completed orders.");
+            Assert.AreEqual(1, createdOrders.Count(), "Should return only created orders.");
+            Assert.AreEqual(3, allOrders.Count(), "Should return all orders when no filter is applied.");
+            Assert.IsTrue(completedOrders.All(o => o.StatusName == "Completed"), "All returned orders should have the status 'Completed'.");
+        }
+
+        private async Task AddOrder(Guid orderId, int quantity, string statusName = "Created")
         {
             var orderIdBytes = orderId.ToByteArray();
+
+            // Determine which status ID to use based on the name
+            var statusId = statusName == "Completed" ? _orderStatusCompletedId : _orderStatusCreatedId;
+
             _orderContext.Order.Add(new Data.Entities.Order
             {
                 Id = orderIdBytes,
                 ResellerId = Guid.NewGuid().ToByteArray(),
                 CustomerId = Guid.NewGuid().ToByteArray(),
                 CreatedDate = DateTime.Now,
-                StatusId = _orderStatusCreatedId,
+                StatusId = statusId, // Use the determind status ID
             });
 
             _orderContext.OrderItem.Add(new OrderItem
@@ -184,6 +212,12 @@ namespace Order.Service.Tests
             {
                 Id = _orderStatusCreatedId,
                 Name = "Created",
+            });
+
+            orderContext.OrderStatus.Add(new OrderStatus
+            {
+                Id = _orderStatusCompletedId,
+                Name = "Completed",
             });
 
             orderContext.OrderService.Add(new Data.Entities.OrderService

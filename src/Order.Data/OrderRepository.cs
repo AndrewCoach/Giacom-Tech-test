@@ -16,11 +16,21 @@ namespace Order.Data
             _orderContext = orderContext;
         }
 
-        public async Task<IEnumerable<OrderSummary>> GetOrdersAsync()
+        public async Task<IEnumerable<OrderSummary>> GetOrdersAsync(string status = null)
         {
-            var orders = await _orderContext.Order
+            var query = _orderContext.Order
                 .Include(x => x.Items)
                 .Include(x => x.Status)
+                .AsQueryable();
+
+            // If a status is provided, add a WHERE clause to filter the results.
+            // We compare the status name in a case-insensitive manner for robustness.
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(o => o.Status.Name.ToLower() == status.ToLower());
+            }
+
+            var orders = await query
                 .Select(x => new OrderSummary
                 {
                     Id = new Guid(x.Id),
@@ -70,7 +80,7 @@ namespace Order.Data
                         Quantity = i.Quantity.Value
                     })
                 }).SingleOrDefaultAsync();
-            
+
             return order;
         }
     }

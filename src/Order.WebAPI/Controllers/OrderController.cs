@@ -19,9 +19,9 @@ namespace OrderService.WebAPI.Controllers
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> Get([FromQuery] string status)
         {
-            var orders = await _orderService.GetOrdersAsync();
+            var orders = await _orderService.GetOrdersAsync(status);
             return Ok(orders);
         }
 
