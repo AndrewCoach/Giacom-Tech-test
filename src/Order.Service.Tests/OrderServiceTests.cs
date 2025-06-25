@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Order.Service.Tests
 {
-    public class OrderServiceTests
+    public partial class OrderServiceTests
     {
         private IOrderService _orderService;
         private IOrderRepository _orderRepository;

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Order.Model;
 using Order.Service;
 using System;
 using System.Threading.Tasks;
@@ -38,6 +39,25 @@ namespace OrderService.WebAPI.Controllers
             else
             {
                 return NotFound();
+            }
+        }
+
+        [HttpPut("{orderId}/status")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UpdateStatus(Guid orderId, [FromBody] UpdateOrderStatusRequest request)
+        {
+            var success = await _orderService.UpdateOrderStatusAsync(orderId, request.StatusName);
+
+            if (success)
+            {
+                // 204 for success with no data
+                return NoContent();
+            }
+            else
+            {
+                return NotFound($"Order with ID '{orderId}' or status '{request.StatusName}' not found.");
             }
         }
     }

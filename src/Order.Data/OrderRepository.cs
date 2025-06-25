@@ -83,5 +83,33 @@ namespace Order.Data
 
             return order;
         }
+
+        public async Task<bool> UpdateOrderStatusAsync(Guid orderId, string newStatusName)
+        {
+            var newStatus = await _orderContext.OrderStatus
+                .FirstOrDefaultAsync(s => s.Name.ToLower() == newStatusName.ToLower());
+
+            // If the status name is invalid, do not proceed.
+            if (newStatus == null)
+            {
+                return false;
+            }
+
+            var orderIdBytes = orderId.ToByteArray();
+
+            var orderToUpdate = await _orderContext.Order
+                .FirstOrDefaultAsync(o => o.Id == orderIdBytes);
+
+            // If the order doesn't exist, do not proceed.
+            if (orderToUpdate == null)
+            {
+                return false;
+            }
+
+            orderToUpdate.StatusId = newStatus.Id;
+            await _orderContext.SaveChangesAsync();
+
+            return true;
+        }
     }
 }

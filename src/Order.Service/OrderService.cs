@@ -17,14 +17,17 @@ namespace Order.Service
 
         public async Task<IEnumerable<OrderSummary>> GetOrdersAsync(string status = null)
         {
-            var orders = await _orderRepository.GetOrdersAsync(status);
-            return orders;
+            return await _orderRepository.GetOrdersAsync(status);
         }
 
         public async Task<OrderDetail> GetOrderByIdAsync(Guid orderId)
         {
-            var order = await _orderRepository.GetOrderByIdAsync(orderId);
-            return order;
+            return await _orderRepository.GetOrderByIdAsync(orderId);
+        }
+
+        public async Task<bool> UpdateOrderStatusAsync(Guid orderId, string newStatusName)
+        {
+            return await _orderRepository.UpdateOrderStatusAsync(orderId, newStatusName);
         }
     }
 }
