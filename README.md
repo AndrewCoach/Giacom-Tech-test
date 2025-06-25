@@ -1,56 +1,15 @@
-# Giacom Tech Test
+The implementation for all four tasks can be found on the feature/order-management-endpoints branch. I have structured the work into a series of logical commits with maybe a bit more description than normal.
 
-## Background
-Giacom Cloud Market is a B2B e-commerce platform which allows IT companies (resellers) to buy services indirectly from major vendors (Microsoft, Symantec, Webroot etc) in high volumes at low cost. IT companies then resell the purchased services on to their customers, making a small margin. Behind Cloud Market are several microservices, one of which is an Order API much like the one we are going to work on for this test.
+I tried to follow a clean, layered architecture, ensuring separation of concerns between the data access, service logic, and API controller layers. Each new feature was accompanied by corresponding unit tests. 
+For ease of testing, I also integrated Swagger, which provides an interactive API documentation page in a development environment.
 
-## Concepts
-* Reseller = A customer of Giacom
-* Customer = A customer of a Reseller
-* Order = An order placed by a Reseller for a specific Customer
-* Order Item = A service and product which belongs to an Order
-* Order Status = The current state of an Order
-* Product = An end-offering which can be purchased e.g. '100GB Mailbox'
-* Service = The category the Product belongs to e.g. 'Email'
-* Profit = The difference between Cost and Price
+The most significant technical challenge encountered was a limitation within the MySql.EntityFrameworkCore database provider. 
 
-## Time
-You should allocate approx. 2 hours to complete the tech test though it will likely take less time for more experienced engineers.
+Initially, a complex LINQ query for calculating monthly profit could not be translated into SQL by the provider, resulting in a runtime error. To overcome this, I refactored the query. New approach involves fetching the necessary raw data with a simpler, translatable query and then performing the complex grouping and aggregation in-memory. While this involves a performance trade-off, it was the most robust and pragmatic solution to work around the provider's limitations. Not ideal for production with large databases though.
 
-## Pre-Reqs
-* Visual Studio 2022 (or compatible IDE for working with .net)
-* .NET 8.0 SDK
-* Git
-* Docker (running Linux containers)
-* Optional: MySQL Workbench / Heidi (database client)
-* Optional: Postman (can also use any other API client)
-
-## Setup
-1. Clone this repository locally
-2. Using a terminal, cd to the local repository and run 'docker-compose up db', which will start and seed the database
-3. Open the solution file in /src
-4. Start debugging or run the Order.WebAPI project then query http://localhost:8000/orders in your API client / browser to test that setup is complete. You should see orders being returned from the API
-   
-## Tasks
-Add a new API endpoint for each of the following tasks:
-1. Return Orders with a specified Order Status e.g. 'Failed'
-2. Allow an Order Status to be updated to a different status e.g. 'InProgress'
-3. Allow an Order to be created. This should include validation of any parameters
-4. Calculate profit by month for all 'completed' Orders
-
-Finally, once code-complete, close your IDE, run 'docker-compose down --volumes' to stop and remove the database container. Now run 'docker-compose up'. This will run the local database and also build the microservice in Release mode. Test the API is working correctly via this method (as this is the one Giacom will run to test the submission).
-
-## Submission
-Please push your code to a new github repository then send the repository link to the email address from which the tech test was issued. If applicable, add notes in the email explaining why you have chosen a particular approach.
-Alternatively, zip or git-bundle the repository and email it.
-
-## Help
-If you happen to run into any issues when running the Docker container, try deselecting Hyper-V Services in "Windows Features" (Search for Windows Features in Start Menu), selecting again, and then restarting your computer.
-
-To connect to the MySQL database directly the credentials are as follows:
-* Hostname: *localhost*
-* Username: *order-service*
-* Password: *nmCsdkhj20n@Sa*
-
-If you experience further issues getting set up with the tech test please reply to the email address from which the tech test was issued with your query.
-
-Copyright (c) 2025, Giacom.
+Finally, everything is working for me locally, but building your release executable just refuses to work!
+This does not seem at all like a code issue, rather a SSL/TLS version mismatch and an issue with MySQL driver package itself.
+Not sure why Mysql was chosen for this but it seems to be a source of all my frustrations.
+Unless I am missing something, the only solution seems to be switching the DB provider, and I cannot do that.
+Anyways, since I have been battling with this already for 1 hour, I have run out of any capacity to try to make this work.
+Code is functional and hopefully it will work on your side.
