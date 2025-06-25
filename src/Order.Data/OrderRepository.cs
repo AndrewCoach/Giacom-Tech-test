@@ -1,9 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Order.Data.Entities;
 using Order.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using OrderItem = Order.Data.Entities.OrderItem;
 
 namespace Order.Data
 {
@@ -82,6 +84,61 @@ namespace Order.Data
                 }).SingleOrDefaultAsync();
 
             return order;
+        }
+
+        public async Task<OrderDetail> CreateOrderAsync(CreateOrderRequest createOrderRequest)
+        {
+            // Fetch all requested product details in a single query for efficiency and validation.
+            var productIds = createOrderRequest.Items.Select(i => i.ProductId.ToByteArray()).ToList();
+            var products = await _orderContext.OrderProduct
+                .Where(p => productIds.Contains(p.Id))
+                .ToDictionaryAsync(p => new Guid(p.Id));
+
+            // Validate that all product IDs provided in the request are valid.
+            if (products.Count != createOrderRequest.Items.Select(i => i.ProductId).Distinct().Count())
+            {
+                // One or more product IDs were not found in the database.
+                // We throw an exception here .
+                var notFoundIds = createOrderRequest.Items.Select(i => i.ProductId).Where(id => !products.ContainsKey(id));
+                throw new ArgumentException($"Invalid ProductId(s) provided: {string.Join(", ", notFoundIds)}");
+            }
+
+            // Every new order should start with a -Created status.
+            var createdStatus = await _orderContext.OrderStatus
+                .SingleAsync(s => s.Name == "Created");
+
+            var newOrderId = Guid.NewGuid();
+            var newOrderEntity = new Entities.Order
+            {
+                Id = newOrderId.ToByteArray(),
+                ResellerId = createOrderRequest.ResellerId.ToByteArray(),
+                CustomerId = createOrderRequest.CustomerId.ToByteArray(),
+                StatusId = createdStatus.Id,
+                CreatedDate = DateTime.UtcNow, // Use UTC for server-side timestamps.
+                Items = new List<OrderItem>()
+            };
+
+            // Create the OrderItem entities from the request.
+            foreach (var itemRequest in createOrderRequest.Items)
+            {
+                var product = products[itemRequest.ProductId];
+                var orderItem = new OrderItem
+                {
+                    Id = Guid.NewGuid().ToByteArray(),
+                    OrderId = newOrderEntity.Id,
+                    ProductId = product.Id,
+                    ServiceId = product.ServiceId, // Get the ServiceId from the product itself.
+                    Quantity = itemRequest.Quantity
+                };
+                newOrderEntity.Items.Add(orderItem);
+            }
+
+            _orderContext.Order.Add(newOrderEntity);
+            await _orderContext.SaveChangesAsync();
+
+            // After successfully creating the order, fetch it's complete details
+            // to return a full representation of the new resource.
+            return await GetOrderByIdAsync(newOrderId);
         }
 
         public async Task<bool> UpdateOrderStatusAsync(Guid orderId, string newStatusName)

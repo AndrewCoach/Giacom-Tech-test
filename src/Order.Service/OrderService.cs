@@ -15,6 +15,23 @@ namespace Order.Service
             _orderRepository = orderRepository;
         }
 
+        public async Task<OrderDetail> CreateOrderAsync(CreateOrderRequest createOrderRequest)
+        {
+            // TODO: add more business logic in real scenario.
+            // such as checking reseller credit limits or triggering notifications.
+            try
+            {
+                return await _orderRepository.CreateOrderAsync(createOrderRequest);
+            }
+            catch (ArgumentException)
+            {
+                // If the repository throws a specific, known exception (like for invalid products),
+                // re-throw it to be handled by the controller.
+                throw;
+            }
+            // Other unexpected exceptions bubble up naturally.
+        }
+
         public async Task<IEnumerable<OrderSummary>> GetOrdersAsync(string status = null)
         {
             return await _orderRepository.GetOrdersAsync(status);

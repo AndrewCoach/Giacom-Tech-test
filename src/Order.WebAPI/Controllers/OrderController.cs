@@ -18,6 +18,30 @@ namespace OrderService.WebAPI.Controllers
             _orderService = orderService;
         }
 
+        [HttpPost]
+        [ProducesResponseType(typeof(OrderDetail), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Create([FromBody] CreateOrderRequest request)
+        {
+            try
+            {
+                var newOrder = await _orderService.CreateOrderAsync(request);
+
+                if (newOrder == null)
+                {
+                    // This case might occur if creation fails for an unknown reason without an exception.
+                    return BadRequest("Could not create the order.");
+                }
+
+                // A 201 Created response with Location header pointing to new resource.
+                return CreatedAtAction(nameof(GetOrderById), new { orderId = newOrder.Id }, newOrder);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> Get([FromQuery] string status)
@@ -26,7 +50,7 @@ namespace OrderService.WebAPI.Controllers
             return Ok(orders);
         }
 
-        [HttpGet("{orderId}")]
+        [HttpGet("{orderId}", Name = "GetOrderById")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetOrderById(Guid orderId)

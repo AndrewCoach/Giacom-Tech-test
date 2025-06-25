@@ -7,6 +7,8 @@ namespace Order.Service
 {
     public interface IOrderService
     {
+        Task<OrderDetail> CreateOrderAsync(CreateOrderRequest createOrderRequest);
+
         Task<IEnumerable<OrderSummary>> GetOrdersAsync(string status = null);
 
         Task<OrderDetail> GetOrderByIdAsync(Guid orderId);
