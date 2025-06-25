@@ -11,7 +11,7 @@
   "profiles": {
     "OrderService.WebAPI": {
       "commandName": "Project",
-      "launchUrl": "orders",
+      "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },

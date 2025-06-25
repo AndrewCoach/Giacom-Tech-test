@@ -10,6 +10,7 @@ namespace OrderService.WebAPI.Controllers
 {
     [ApiController]
     [Route("orders")]
+    [Produces("application/json")]
     public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -19,6 +20,11 @@ namespace OrderService.WebAPI.Controllers
             _orderService = orderService;
         }
 
+        /// <summary>
+        /// Creates a new order.
+        /// </summary>
+        /// <param name="request">The details of the order to create.</param>
+        /// <returns>The newly created order's details.</returns>
         [HttpPost]
         [ProducesResponseType(typeof(OrderDetail), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -43,6 +49,11 @@ namespace OrderService.WebAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves a list of all orders, optionally filtered by status.
+        /// </summary>
+        /// <param name="status">Optional. The name of the status to filter by (e.g., 'Completed', 'Failed').</param>
+        /// <returns>A list of order summaries.</returns>
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> Get([FromQuery] string status)
@@ -51,6 +62,11 @@ namespace OrderService.WebAPI.Controllers
             return Ok(orders);
         }
 
+        /// <summary>
+        /// Retrieves the details of a specific order by its ID.
+        /// </summary>
+        /// <param name="orderId">The unique identifier of the order.</param>
+        /// <returns>The detailed order information.</returns>
         [HttpGet("{orderId}", Name = "GetOrderById")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -67,6 +83,12 @@ namespace OrderService.WebAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Updates the status of an existing order.
+        /// </summary>
+        /// <param name="orderId">The ID of the order to update.</param>
+        /// <param name="request">The request containing the new status name.</param>
+        /// <returns>No content if successful.</returns>
         [HttpPut("{orderId}/status")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -86,6 +108,10 @@ namespace OrderService.WebAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Calculates the total profit for 'Completed' orders, grouped by year and month.
+        /// </summary>
+        /// <returns>A list of monthly profit summaries.</returns>
         [HttpGet("profit/monthly")]
         [ProducesResponseType(typeof(IEnumerable<MonthlyProfit>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetMonthlyProfit()
