@@ -88,18 +88,23 @@ namespace Order.Data
 
         public async Task<OrderDetail> CreateOrderAsync(CreateOrderRequest createOrderRequest)
         {
-            // Fetch all requested product details in a single query for efficiency and validation.
-            var productIds = createOrderRequest.Items.Select(i => i.ProductId.ToByteArray()).ToList();
-            var products = await _orderContext.OrderProduct
-                .Where(p => productIds.Contains(p.Id))
-                .ToDictionaryAsync(p => new Guid(p.Id));
+            // The MySQL EF Core provider is unable to translate any form of .Contains()
+            // check involving Guids and byte arrays.
+
+            // Fetch ALL products into memory. This is the simplest possible database query.
+            var allProducts = await _orderContext.OrderProduct.ToListAsync();
+
+            // Now that the products are an in-memory List<OrderProduct>, use standard C# LINQ
+            // to filter and create the dictionary for validation. This code is NOT translated to SQL.
+            var productIdsInRequest = createOrderRequest.Items.Select(i => i.ProductId).ToList();
+            var products = allProducts
+                .Where(p => productIdsInRequest.Contains(new Guid(p.Id)))
+                .ToDictionary(p => new Guid(p.Id));
 
             // Validate that all product IDs provided in the request are valid.
-            if (products.Count != createOrderRequest.Items.Select(i => i.ProductId).Distinct().Count())
+            if (products.Count != productIdsInRequest.Distinct().Count())
             {
-                // One or more product IDs were not found in the database.
-                // We throw an exception here .
-                var notFoundIds = createOrderRequest.Items.Select(i => i.ProductId).Where(id => !products.ContainsKey(id));
+                var notFoundIds = productIdsInRequest.Where(id => !products.ContainsKey(id));
                 throw new ArgumentException($"Invalid ProductId(s) provided: {string.Join(", ", notFoundIds)}");
             }
 
@@ -121,13 +126,13 @@ namespace Order.Data
             // Create the OrderItem entities from the request.
             foreach (var itemRequest in createOrderRequest.Items)
             {
-                var product = products[itemRequest.ProductId];
+                var productEntity = products[itemRequest.ProductId];
                 var orderItem = new OrderItem
                 {
                     Id = Guid.NewGuid().ToByteArray(),
                     OrderId = newOrderEntity.Id,
-                    ProductId = product.Id,
-                    ServiceId = product.ServiceId, // Get the ServiceId from the product itself.
+                    ProductId = productEntity.Id,
+                    ServiceId = productEntity.ServiceId,
                     Quantity = itemRequest.Quantity
                 };
                 newOrderEntity.Items.Add(orderItem);
